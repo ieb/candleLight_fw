@@ -41,6 +41,12 @@ typedef struct {
 	uint8_t phase_seg1;
 	uint8_t phase_seg2;
 	uint8_t sjw;
+	uint8_t nPgnFilters;
+	uint8_t nSourceFilters;
+	uint8_t nDestinationFilters;
+	uint8_t sourceFilter[MAX_SOURCE_FILTERS];
+	uint8_t destinationFilter[MAX_DESTINATION_FILTERS];
+	uint32_t pgnFilter[MAX_PGN_FILTERS];
 } can_data_t;
 
 void can_init(can_data_t *hcan, CAN_TypeDef *instance);
@@ -65,3 +71,14 @@ uint32_t can_get_error_status(can_data_t *hcan);
  * @return 1 when status changes (if any) need a new error frame sent
  */
 bool can_parse_error_status(can_data_t *hcan, struct gs_host_frame *frame, uint32_t err);
+
+
+/**
+ * Support PGN filtering, if set only matching PGNs will be sent to the host.
+ */ 
+bool can_filter_pgn(can_data_t *hcan, struct gs_host_frame *rx_frame);
+void can_set_filter(can_data_t * hcan, struct gs_device_filter *filter);
+bool can_filter_find_u8_match(uint8_t v, uint8_t *filters, uint8_t n);
+bool can_filter_find_u32_match(uint32_t v, uint32_t *filters, uint8_t n);
+
+

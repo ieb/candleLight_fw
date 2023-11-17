@@ -345,6 +345,9 @@ static uint8_t USBD_GS_CAN_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupRe
 		case GS_USB_BREQ_BITTIMING:
 			len = sizeof(struct gs_device_bittiming);
 			break;
+		case GS_USB_BREQ_SET_FILTER:
+			len = sizeof(struct gs_device_filter);
+			break;
 		case GS_USB_BREQ_MODE:
 			len = sizeof(struct gs_device_mode);
 			break;
@@ -394,6 +397,7 @@ static uint8_t USBD_GS_CAN_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupRe
 	switch (req->bRequest) {
 		case GS_USB_BREQ_HOST_FORMAT:
 		case GS_USB_BREQ_BITTIMING:
+		case GS_USB_BREQ_SET_FILTER:
 		case GS_USB_BREQ_MODE:
 		case GS_USB_BREQ_IDENTIFY:
 		case GS_USB_BREQ_SET_TERMINATION:
@@ -557,6 +561,13 @@ static uint8_t USBD_GS_CAN_EP0_RxReady(USBD_HandleTypeDef *pdev) {
 				}
 			}
 			break;
+		}
+		case GS_USB_BREQ_SET_FILTER: {
+			struct gs_device_filter *filter;
+
+			filter = (struct gs_device_filter*)hcan->ep0_buf;
+			can_set_filter(channel, filter);
+			break;			
 		}
 		default:
 			break;

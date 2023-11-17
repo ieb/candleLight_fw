@@ -40,11 +40,12 @@ THE SOFTWARE.
 /* Define these here so they can be referenced in other files */
 
 #define GS_CAN_EP0_BUF_SIZE \
-	max5(sizeof(struct gs_host_config), \
+	max(max5(sizeof(struct gs_host_config), \
 		 sizeof(struct gs_device_bittiming), \
 		 sizeof(struct gs_device_mode), \
 		 sizeof(struct gs_identify_mode), \
-		 sizeof(struct gs_device_termination_state))
+		 sizeof(struct gs_device_termination_state)), \
+		 sizeof(struct gs_device_filter))
 #define CAN_DATA_MAX_PACKET_SIZE 32    /* Endpoint IN & OUT Packet size */
 #define USB_CAN_CONFIG_DESC_SIZ	 50
 #define USBD_GS_CAN_VENDOR_CODE	 0x20

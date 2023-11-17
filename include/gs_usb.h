@@ -30,6 +30,10 @@ THE SOFTWARE.
 
 #include "compiler.h"
 
+#define MAX_PGN_FILTERS    20
+#define MAX_DESTINATION_FILTERS 20
+#define MAX_SOURCE_FILTERS 20
+
 #define u32				   uint32_t
 #define u8				   uint8_t
 
@@ -181,7 +185,10 @@ enum gs_usb_breq {
 	GS_USB_BREQ_SET_TERMINATION,
 	GS_USB_BREQ_GET_TERMINATION,
 	GS_USB_BREQ_GET_STATE,
+	GS_USB_BREQ_SET_FILTER=32 // custom, not in the gs_usb kernel driver
 };
+
+
 
 enum gs_can_mode {
 	/* reset a channel. turns it off */
@@ -199,16 +206,29 @@ enum gs_can_state {
 	GS_CAN_STATE_SLEEPING
 };
 
+
 enum gs_can_termination_state {
 	GS_CAN_TERMINATION_UNSUPPORTED = -1,    // private, not in kernel enum
 	GS_CAN_TERMINATION_STATE_OFF = 0,
 	GS_CAN_TERMINATION_STATE_ON,
 };
 
+enum gs_can_filter_type {
+	GS_CAN_FILTER_TYPE_PGN = 0,
+	GS_CAN_FILTER_TYPE_SOURCE,
+	GS_CAN_FILTER_TYPE_DESTINATION,
+	GS_CAN_FILTER_TYPE_RESET_PGN,
+	GS_CAN_FILTER_TYPE_RESET_SOURCE,
+	GS_CAN_FILTER_TYPE_RESET_DESTINATION
+};
+
+
+
 /* data types passed between host and device */
 struct gs_host_config {
 	u32 byte_order;
 } __packed __aligned(4);
+// 4
 
 /* The firmware on the original USB2CAN by Geschwister Schneider
  * Technologie Entwicklungs- und Vertriebs UG exchanges all data
@@ -227,17 +247,20 @@ struct gs_device_config {
 	u32 sw_version;
 	u32 hw_version;
 } __packed __aligned(4);
+// 12
 
 struct gs_device_mode {
 	u32 mode;
 	u32 flags;
 } __packed __aligned(4);
+// 8
 
 struct gs_device_state {
 	u32 state;
 	u32 rxerr;
 	u32 txerr;
 } __packed __aligned(4);
+// 12
 
 struct gs_device_bittiming {
 	u32 prop_seg;
@@ -246,6 +269,7 @@ struct gs_device_bittiming {
 	u32 sjw;
 	u32 brp;
 } __packed __aligned(4);
+// 20
 
 struct gs_device_bt_const {
 	u32 feature;
@@ -259,6 +283,7 @@ struct gs_device_bt_const {
 	u32 brp_max;
 	u32 brp_inc;
 } __packed __aligned(4);
+// 40
 
 struct gs_device_bt_const_extended {
 	u32 feature;
@@ -281,14 +306,17 @@ struct gs_device_bt_const_extended {
 	u32 dbrp_max;
 	u32 dbrp_inc;
 } __packed __aligned(4);
+// 18*4 == 72
 
 struct gs_identify_mode {
 	u32 mode;
 } __packed __aligned(4);
+// 4
 
 struct gs_device_termination_state {
 	u32 state;
 } __packed __aligned(4);
+// 4
 
 struct gs_host_frame {
 	u32 echo_id;
@@ -304,6 +332,7 @@ struct gs_host_frame {
 	u32 timestamp_us;
 
 } __packed __aligned(4);
+// 6*4 = 24
 
 struct gs_host_frame_canfd {
 	u32 echo_id;
@@ -316,3 +345,15 @@ struct gs_host_frame_canfd {
 
 	u8 data[64];
 } __packed __aligned(4);
+// 12+64 = 76
+
+
+struct gs_device_filter {
+	u8 filterNum;
+	u8 filterType;
+	u8 address;
+	u8 reserved;
+	u32 pgn;
+} __packed __aligned(4);
+// 8
+

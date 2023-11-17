@@ -1,4 +1,13 @@
 # candleLight_gsusb
+
+## Mods
+
+### Filtering on the device.
+
+Supports an additional usb vendor write command to set filters for source, destination and pgn. struct gs_device_filter (in include/gs_usb.h), command GS_USB_BREQ_SET_FILTER (32).
+
+
+
 [![Build](https://github.com/candle-usb/candleLight_fw/actions/workflows/ci.yml/badge.svg)](https://github.com/candle-usb/candleLight_fw/actions)
 
 This is firmware for certain STM32F042x/STM32F072xB-based USB-CAN adapters, notably:

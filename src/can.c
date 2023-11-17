@@ -179,11 +179,135 @@ bool can_receive(can_data_t *hcan, struct gs_host_frame *rx_frame)
 
 		can->RF0R |= CAN_RF0R_RFOM0;         // release FIFO
 
-		return true;
+		return can_filter_pgn(hcan, rx_frame);
 	} else {
 		return false;
 	}
 }
+
+/**
+ * When filtering is enabeled by setting nPgns != 0 and adding 
+ * values to can_id. This will return true for extended frames 
+ * that should be accepted.
+ */
+bool can_filter_pgn(can_data_t *hcan, struct gs_host_frame *rx_frame) {
+	if (((rx_frame->can_id >> 24)&0x80) == 0x80) {
+		// extended frame
+      // CAN ID is 29 bits long
+      // 111 1 1 11111111 11111111 11111111
+      //                           -------- Source Addresss 8 bits @0
+      //                  -------- PDU specific 8 bits @ 8
+      //         -------- PDU Format 8 bits @ 16
+      //       - Data Page 1 but @24
+      //     - reserved 1 bit @25
+      // --- priority (3 bits starting @26)
+
+      // PDU Format < 240 is transmitted with a destination address, which is in 8 bits 8
+      // PDU Format 240 > 255 is a broadcast with the Group extension in 8 bits @8.
+      if ( hcan->nPgnFilters == 0 
+      	&& hcan->nSourceFilters == 0
+      	&& hcan->nDestinationFilters == 0) {
+      	return true;
+      }
+		uint32_t pgn;
+		uint8_t sourceAddress = rx_frame->can_id&0xff;
+		uint8_t destinationAddress = 0xff;
+
+		if ( ((rx_frame->can_id >> 16)&0xff) < 240 ) {
+			destinationAddress = (rx_frame->can_id >> 8)&0xff;
+			pgn = ((rx_frame->can_id>>8)&0x1FF00);
+		} else {
+			pgn = ((rx_frame->can_id>>8)&0x1FFFF);
+		}
+		return can_filter_find_u8_match(destinationAddress, hcan->destinationFilter, hcan->nDestinationFilters) 
+			&& can_filter_find_u8_match(sourceAddress, hcan->sourceFilter, hcan->nSourceFilters)
+			&& can_filter_find_u32_match(pgn, hcan->pgnFilter, hcan->nPgnFilters);
+	}
+	return true;
+}
+/**
+ * Filter if any set returning true for a match
+ */
+bool can_filter_find_u8_match(uint8_t v, uint8_t *filters, uint8_t n) {
+	if ( n == 0 ) {
+		return true;
+	} else {
+		for (int i = 0; i < n; i++) {
+			if ( v == filters[i] ) {
+				return true;
+			}
+		}
+		return false;		
+	}
+}
+/**
+ * Filter if any set returning true for a match, uint32_t version
+ */
+bool can_filter_find_u32_match(uint32_t v, uint32_t *filters, uint8_t n) {
+	if ( n == 0 ) {
+		return true;
+	} else {
+		for (int i = 0; i < n; i++) {
+			if ( v == filters[i] ) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
+/** 
+ * Configure the PGN filters.
+ */
+void can_set_filter(can_data_t * hcan, struct gs_device_filter *filter) {
+	if  ( filter->filterType == GS_CAN_FILTER_TYPE_PGN ) {
+		if ( filter->filterNum < MAX_PGN_FILTERS ) {
+			hcan->pgnFilter[filter->filterNum] = filter->pgn;
+			for (int i = 0; i < MAX_PGN_FILTERS; i++) {
+				if (hcan->pgnFilter[i] != 0) {
+					hcan->nPgnFilters = i;
+				}
+			}	
+		}
+
+	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_SOURCE ) {
+		if ( filter->filterNum < MAX_SOURCE_FILTERS ) {
+			hcan->sourceFilter[filter->filterNum] = filter->address;
+			for (int i = 0; i < MAX_SOURCE_FILTERS; i++) {
+				if (hcan->sourceFilter[i] != 0) {
+					hcan->nSourceFilters = i;
+				}
+			}	
+		}
+	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_DESTINATION ) {
+		if ( filter->filterNum < MAX_DESTINATION_FILTERS ) {
+			hcan->destinationFilter[filter->filterNum] = filter->address;
+			for (int i = 0; i < MAX_DESTINATION_FILTERS; i++) {
+				if (hcan->destinationFilter[i] != 0) {
+					hcan->nDestinationFilters = i;
+				}
+			}	
+		}
+	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_RESET_PGN ) {
+		for (int i = 0; i < MAX_PGN_FILTERS; i++) {
+			hcan->pgnFilter[i] = 0;
+		}	
+		hcan->nPgnFilters = 0;
+	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_RESET_SOURCE ) {
+		for (int i = 0; i < MAX_PGN_FILTERS; i++) {
+			hcan->sourceFilter[i] = 0;
+		}	
+		hcan->nSourceFilters = 0;
+	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_RESET_DESTINATION ) {
+		for (int i = 0; i < MAX_PGN_FILTERS; i++) {
+			hcan->destinationFilter[i] = 0;
+		}	
+		hcan->nDestinationFilters = 0;
+	}
+}
+
+
+
 
 static CAN_TxMailBox_TypeDef *can_find_free_mailbox(can_data_t *hcan)
 {
