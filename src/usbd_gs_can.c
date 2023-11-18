@@ -315,6 +315,7 @@ static uint8_t USBD_GS_CAN_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupRe
 {
 	USBD_GS_CAN_HandleTypeDef *hcan = (USBD_GS_CAN_HandleTypeDef*) pdev->pClassData;
 	struct gs_device_termination_state term_state;
+	struct gs_device_filter device_filter; 
 	can_data_t *channel;
 	const void *src = NULL;
 	size_t len;
@@ -385,6 +386,13 @@ static uint8_t USBD_GS_CAN_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupRe
 			src = &term_state;
 			len = sizeof(term_state);
 			break;
+		case GS_USB_BREQ_READ_NEXT_FILTER:
+			can_get_next_filter(channel, &device_filter);
+			src = &device_filter;
+			len = sizeof(device_filter);
+			break;
+
+
 		}
 		default:
 			goto out_fail;
@@ -414,6 +422,7 @@ static uint8_t USBD_GS_CAN_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupRe
 		case GS_USB_BREQ_DEVICE_CONFIG:
 		case GS_USB_BREQ_TIMESTAMP:
 		case GS_USB_BREQ_GET_TERMINATION:
+		case GS_USB_BREQ_READ_NEXT_FILTER:
 			USBD_CtlSendData(pdev, (uint8_t *)src, len);
 			break;
 		default:

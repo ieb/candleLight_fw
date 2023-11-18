@@ -44,6 +44,8 @@ typedef struct {
 	uint8_t nPgnFilters;
 	uint8_t nSourceFilters;
 	uint8_t nDestinationFilters;
+	uint8_t filterReadIdx;
+	uint8_t filterReadType;
 	uint8_t sourceFilter[MAX_SOURCE_FILTERS];
 	uint8_t destinationFilter[MAX_DESTINATION_FILTERS];
 	uint32_t pgnFilter[MAX_PGN_FILTERS];
@@ -80,5 +82,6 @@ bool can_filter_pgn(can_data_t *hcan, struct gs_host_frame *rx_frame);
 void can_set_filter(can_data_t * hcan, struct gs_device_filter *filter);
 bool can_filter_find_u8_match(uint8_t v, uint8_t *filters, uint8_t n);
 bool can_filter_find_u32_match(uint32_t v, uint32_t *filters, uint8_t n);
+void can_get_next_filter(can_data_t * hcan, struct gs_device_filter *filter);
 
 

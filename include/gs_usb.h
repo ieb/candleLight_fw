@@ -185,7 +185,8 @@ enum gs_usb_breq {
 	GS_USB_BREQ_SET_TERMINATION,
 	GS_USB_BREQ_GET_TERMINATION,
 	GS_USB_BREQ_GET_STATE,
-	GS_USB_BREQ_SET_FILTER=32 // custom, not in the gs_usb kernel driver
+	GS_USB_BREQ_SET_FILTER=32, // custom, not in the gs_usb kernel driver
+	GS_USB_BREQ_READ_NEXT_FILTER=33 // Reads next filter, after a set filter to start reading.
 };
 
 
@@ -213,13 +214,16 @@ enum gs_can_termination_state {
 	GS_CAN_TERMINATION_STATE_ON,
 };
 
-enum gs_can_filter_type {
-	GS_CAN_FILTER_TYPE_PGN = 0,
-	GS_CAN_FILTER_TYPE_SOURCE,
-	GS_CAN_FILTER_TYPE_DESTINATION,
-	GS_CAN_FILTER_TYPE_RESET_PGN,
-	GS_CAN_FILTER_TYPE_RESET_SOURCE,
-	GS_CAN_FILTER_TYPE_RESET_DESTINATION
+enum gs_can_filter_operaton_type {
+	GS_CAN_FILTER_TYPE_SET_PGN = 0,  // sets 1 PGN filter
+	GS_CAN_FILTER_TYPE_SET_SOURCE,   // sets 1 source filter
+	GS_CAN_FILTER_TYPE_SET_DESTINATION, // sets 1 destination filter
+	GS_CAN_FILTER_TYPE_RESET_PGN, // reset all pgn filters to no filter
+	GS_CAN_FILTER_TYPE_RESET_SOURCE, // reset all source filters to no filter
+	GS_CAN_FILTER_TYPE_RESET_DESTINATION, // reset all  destination filters
+	GS_CAN_FILTER_TYPE_READ_PGN,  // start reading pgn filters at specified number
+	GS_CAN_FILTER_TYPE_READ_SOURCE, // start reading source filters at specified number
+	GS_CAN_FILTER_TYPE_READ_DESTINATION // start reading destination filters at specified number
 };
 
 
@@ -349,11 +353,11 @@ struct gs_host_frame_canfd {
 
 
 struct gs_device_filter {
-	u8 filterNum;
-	u8 filterType;
-	u8 address;
-	u8 reserved;
-	u32 pgn;
+	u8 filterNum;  // the number of the filter read or written, 255 if no more filters on read.
+	u8 filterType; // see gs_can_filter_operaton_type
+	u8 address;	   // address, depending on value of filterType
+	u8 nFilters;  // device -> host only, reports the max filternumber of the type in use.
+	u32 pgn; // pgn value
 } __packed __aligned(4);
 // 8
 

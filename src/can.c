@@ -260,31 +260,31 @@ bool can_filter_find_u32_match(uint32_t v, uint32_t *filters, uint8_t n) {
  * Configure the PGN filters.
  */
 void can_set_filter(can_data_t * hcan, struct gs_device_filter *filter) {
-	if  ( filter->filterType == GS_CAN_FILTER_TYPE_PGN ) {
+	if  ( filter->filterType == GS_CAN_FILTER_TYPE_SET_PGN ) {
 		if ( filter->filterNum < MAX_PGN_FILTERS ) {
 			hcan->pgnFilter[filter->filterNum] = filter->pgn;
 			for (int i = 0; i < MAX_PGN_FILTERS; i++) {
 				if (hcan->pgnFilter[i] != 0) {
-					hcan->nPgnFilters = i;
+					hcan->nPgnFilters = i+1;
 				}
 			}	
 		}
 
-	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_SOURCE ) {
+	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_SET_SOURCE ) {
 		if ( filter->filterNum < MAX_SOURCE_FILTERS ) {
 			hcan->sourceFilter[filter->filterNum] = filter->address;
 			for (int i = 0; i < MAX_SOURCE_FILTERS; i++) {
 				if (hcan->sourceFilter[i] != 0) {
-					hcan->nSourceFilters = i;
+					hcan->nSourceFilters = i+1;
 				}
 			}	
 		}
-	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_DESTINATION ) {
+	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_SET_DESTINATION ) {
 		if ( filter->filterNum < MAX_DESTINATION_FILTERS ) {
 			hcan->destinationFilter[filter->filterNum] = filter->address;
 			for (int i = 0; i < MAX_DESTINATION_FILTERS; i++) {
 				if (hcan->destinationFilter[i] != 0) {
-					hcan->nDestinationFilters = i;
+					hcan->nDestinationFilters = i+1;
 				}
 			}	
 		}
@@ -294,18 +294,62 @@ void can_set_filter(can_data_t * hcan, struct gs_device_filter *filter) {
 		}	
 		hcan->nPgnFilters = 0;
 	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_RESET_SOURCE ) {
-		for (int i = 0; i < MAX_PGN_FILTERS; i++) {
+		for (int i = 0; i < MAX_SOURCE_FILTERS; i++) {
 			hcan->sourceFilter[i] = 0;
 		}	
 		hcan->nSourceFilters = 0;
 	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_RESET_DESTINATION ) {
-		for (int i = 0; i < MAX_PGN_FILTERS; i++) {
+		for (int i = 0; i < MAX_DESTINATION_FILTERS; i++) {
 			hcan->destinationFilter[i] = 0;
 		}	
 		hcan->nDestinationFilters = 0;
+	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_READ_PGN ) {
+		if ( filter->filterNum < MAX_PGN_FILTERS ) {
+			hcan->filterReadIdx = filter->filterNum;
+			hcan->filterReadType = GS_CAN_FILTER_TYPE_READ_PGN;
+		}
+	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_READ_SOURCE ) {
+		if ( filter->filterNum < MAX_SOURCE_FILTERS ) {
+			hcan->filterReadIdx = filter->filterNum;
+			hcan->filterReadType = GS_CAN_FILTER_TYPE_READ_SOURCE;
+		}
+	} else if ( filter->filterType == GS_CAN_FILTER_TYPE_READ_DESTINATION ) {
+		if ( filter->filterNum < MAX_DESTINATION_FILTERS ) {
+			hcan->filterReadIdx = filter->filterNum;
+			hcan->filterReadType = GS_CAN_FILTER_TYPE_READ_DESTINATION;
+		}
 	}
 }
 
+void can_get_next_filter(can_data_t * hcan, struct gs_device_filter *filter) {
+	filter->filterType = hcan->filterReadType;
+	filter->filterNum = hcan->filterReadIdx;
+	if ( hcan->filterReadType == GS_CAN_FILTER_TYPE_READ_PGN ) {
+		filter->nFilters = hcan->nPgnFilters;		
+		if ( hcan->filterReadIdx < MAX_PGN_FILTERS ) {
+			filter->pgn = hcan->pgnFilter[hcan->filterReadIdx];
+			hcan->filterReadIdx++;
+		} else {
+			filter->filterNum = 255;
+		}
+	} else if ( hcan->filterReadType == GS_CAN_FILTER_TYPE_READ_SOURCE  ) {
+		filter->nFilters = hcan->nSourceFilters;	
+		if ( hcan->filterReadIdx < MAX_SOURCE_FILTERS ) {
+			filter->address = hcan->sourceFilter[hcan->filterReadIdx];
+			hcan->filterReadIdx++;
+		} else {
+			filter->filterNum = 255;
+		}
+	} else if ( hcan->filterReadType == GS_CAN_FILTER_TYPE_READ_DESTINATION ) {
+		filter->nFilters = hcan->nDestinationFilters;	
+		if ( hcan->filterReadIdx < MAX_DESTINATION_FILTERS ) {
+			filter->address = hcan->destinationFilter[hcan->filterReadIdx];
+			hcan->filterReadIdx++;
+		} else {
+			filter->filterNum = 255;
+		}
+	}
+}
 
 
 
