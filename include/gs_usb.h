@@ -35,6 +35,7 @@ THE SOFTWARE.
 #define MAX_SOURCE_FILTERS 20
 
 #define u32				   uint32_t
+#define u16                uint16_t
 #define u8				   uint8_t
 
 #define GSUSB_ENDPOINT_IN  0x81
@@ -186,7 +187,8 @@ enum gs_usb_breq {
 	GS_USB_BREQ_GET_TERMINATION,
 	GS_USB_BREQ_GET_STATE,
 	GS_USB_BREQ_SET_FILTER=32, // custom, not in the gs_usb kernel driver
-	GS_USB_BREQ_READ_NEXT_FILTER=33 // Reads next filter, after a set filter to start reading.
+	GS_USB_BREQ_READ_NEXT_FILTER=33, // Reads next filter, after a set filter to start reading.
+	GS_USB_BREQ_READ_METRICS=34 // Metrics
 };
 
 
@@ -360,4 +362,19 @@ struct gs_device_filter {
 	u32 pgn; // pgn value
 } __packed __aligned(4);
 // 8
+
+// Metrics counters
+struct gs_metrics {
+	u16 main_loop; // count of iterations round the main loop in main.c
+	u16 send_to_host; // calls to send to host in main.c
+	u16 recv;  // count of frame ready to goto host in main.c
+	u16 no_recv; // count of no receive in main.c
+	u16 no_pool_frame; // count of no pool frame available in main.c
+	u16 error; // count of errors sent to host in main.c
+	u16 no_error; // count of times no error was detected.
+	u16 spare;
+}  __packed __aligned(4);
+// 16
+
+
 

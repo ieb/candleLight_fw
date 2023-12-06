@@ -45,7 +45,8 @@ THE SOFTWARE.
 		 sizeof(struct gs_device_mode), \
 		 sizeof(struct gs_identify_mode), \
 		 sizeof(struct gs_device_termination_state)), \
-		 sizeof(struct gs_device_filter))
+		 max(sizeof(struct gs_device_filter), \
+		  sizeof(struct gs_metrics)))
 #define CAN_DATA_MAX_PACKET_SIZE 32    /* Endpoint IN & OUT Packet size */
 #define USB_CAN_CONFIG_DESC_SIZ	 50
 #define USBD_GS_CAN_VENDOR_CODE	 0x20
@@ -53,6 +54,8 @@ THE SOFTWARE.
 #define DFU_INTERFACE_STR_INDEX	 0xE0
 
 extern USBD_ClassTypeDef USBD_GS_CAN;
+
+extern struct gs_metrics USBD_GS_CAN_Metrics;
 
 struct gs_host_frame_object {
 	struct list_head list;
@@ -84,6 +87,9 @@ typedef struct {
 	struct gs_host_frame_object msgbuf[CAN_QUEUE_SIZE];
 } USBD_GS_CAN_HandleTypeDef __attribute__ ((aligned (4)));
 
+
+
+
 #if defined(STM32F0)
 # define USB_INTERFACE USB
 # define USB_INTERRUPT USB_IRQn
@@ -106,3 +112,4 @@ bool USBD_GS_CAN_CustomInterfaceRequest(USBD_HandleTypeDef *pdev, USBD_SetupReqT
 
 bool USBD_GS_CAN_DfuDetachRequested(USBD_HandleTypeDef *pdev);
 uint8_t USBD_GS_CAN_SendFrame(USBD_HandleTypeDef *pdev, struct gs_host_frame *frame);
+

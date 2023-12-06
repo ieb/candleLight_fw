@@ -78,6 +78,15 @@ int main(void)
 	can_init(channel, CAN_INTERFACE);
 	can_disable(channel);
 
+	/* the pool contains a linked list of frames that are idle.
+	  list_from_host contains a queue of frames from the USB host to the CAN interfce.
+	  list_to_host contiains a queue of frames waiting to go to the host.
+	 main loop moves data in an out of these lists.
+	 If the pool becomes empty, then there are no frames available to use for operations
+	 until the other frames are cleared, and packets will be dropped.
+	*/
+
+
 	INIT_LIST_HEAD(&hGS_CAN.list_frame_pool);
 	INIT_LIST_HEAD(&hGS_CAN.list_from_host);
 	INIT_LIST_HEAD(&hGS_CAN.list_to_host);
@@ -96,6 +105,7 @@ int main(void)
 #endif
 
 	while (1) {
+		USBD_GS_CAN_Metrics.main_loop++;
 		struct gs_host_frame_object *frame_object;
 
 		bool was_irq_enabled = disable_irq();
@@ -118,6 +128,7 @@ int main(void)
 
 				led_indicate_trx(&channel->leds, led_tx);
 			} else {
+				// can send failed. add it back into the list to send.
 				list_add_locked(&frame_object->list, &hGS_CAN.list_from_host);
 			}
 		} else {
@@ -125,11 +136,17 @@ int main(void)
 		}
 
 		if (USBD_GS_CAN_TxReady(&hUSB)) {
+			// send any pending data from list_to_host
+			// to the USB host. This is added either as an echo from a send operation above,
+			// or as a recieve operation, below. 
 			send_to_host();
+			USBD_GS_CAN_Metrics.send_to_host++;
+
 		}
 
 		if (can_is_rx_pending(channel)) {
 			bool was_irq_enabled = disable_irq();
+
 			frame_object = list_first_entry_or_null(&hGS_CAN.list_frame_pool,
 													struct gs_host_frame_object,
 													list);
@@ -147,14 +164,21 @@ int main(void)
 					frame->flags = 0;
 					frame->reserved = 0;
 
+					// add the frame to the list to send back to the USB host, when it is ready
+					// to receive data.
 					list_add_tail_locked(&frame_object->list, &hGS_CAN.list_to_host);
 
 					led_indicate_trx(&channel->leds, led_rx);
+					USBD_GS_CAN_Metrics.recv++;
 				} else {
+					// return to the pool
 					list_add_tail_locked(&frame_object->list, &hGS_CAN.list_frame_pool);
+					USBD_GS_CAN_Metrics.no_recv++;
 				}
 			} else {
+				// no frame objects available
 				restore_irq(was_irq_enabled);
+				USBD_GS_CAN_Metrics.no_pool_frame++;
 			}
 			// If there are frames to receive, don't report any error frames. The
 			// best we can localize the errors to is "after the last successfully
@@ -176,11 +200,14 @@ int main(void)
 				frame->timestamp_us = timer_get();
 				if (can_parse_error_status(channel, frame, can_err)) {
 					list_add_tail_locked(&frame_object->list, &hGS_CAN.list_to_host);
+					USBD_GS_CAN_Metrics.error++;
 				} else {
 					list_add_tail_locked(&frame_object->list, &hGS_CAN.list_frame_pool);
+					USBD_GS_CAN_Metrics.no_error++;
 				}
 			} else {
 				restore_irq(was_irq_enabled);
+				USBD_GS_CAN_Metrics.no_pool_frame++;
 			}
 		}
 

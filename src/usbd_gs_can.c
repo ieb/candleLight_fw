@@ -235,6 +235,17 @@ static const struct gs_device_bt_const USBD_GS_CAN_btconst = {
 	.brp_inc = 1,
 };
 
+struct gs_metrics USBD_GS_CAN_Metrics = {
+	.main_loop = 0,
+	.send_to_host = 0,
+	.recv = 0,
+	.no_recv = 0,
+	.no_pool_frame = 0,
+	.error = 0,
+	.no_error = 0,
+};
+
+
 /* It's unclear from the documentation, but it appears that the USB library is
  * not safely reentrant. It attempts to signal errors via return values if it is
  * reentered, but that code is not interrupt-safe and the error values are
@@ -391,6 +402,10 @@ static uint8_t USBD_GS_CAN_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupRe
 			src = &device_filter;
 			len = sizeof(device_filter);
 			break;
+		case GS_USB_BREQ_READ_METRICS:
+			src = &USBD_GS_CAN_Metrics;
+			len = sizeof(USBD_GS_CAN_Metrics);
+			break;
 
 
 		}
@@ -423,6 +438,7 @@ static uint8_t USBD_GS_CAN_Config_Request(USBD_HandleTypeDef *pdev, USBD_SetupRe
 		case GS_USB_BREQ_TIMESTAMP:
 		case GS_USB_BREQ_GET_TERMINATION:
 		case GS_USB_BREQ_READ_NEXT_FILTER:
+		case GS_USB_BREQ_READ_METRICS:
 			USBD_CtlSendData(pdev, (uint8_t *)src, len);
 			break;
 		default:
